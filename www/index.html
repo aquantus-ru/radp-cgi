@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RDAP & ASN Map Query</title>
+</head>
+<body>
+    <h1>RDAP & ASN Map Query</h1>
+    <form id="rdapForm">
+        <label for="type">Query Type:</label>
+        <select id="type" name="type">
+            <option value="domain">Domain (RDAP)</option>
+            <option value="ip">IP (RDAP)</option>
+            <option value="autnum">Autnum (ASN) (RDAP)</option>
+            <option value="asnmap">ASN to IP Map (RADB)</option>
+        </select>
+        <br><br>
+        <label for="value">Value:</label>
+        <input type="text" id="value" name="value" required placeholder="example.com, 8.8.8.8, AS15169">
+        <br><br>
+        <button type="submit">Query</button>
+    </form>
+    <hr>
+    <h2>Result:</h2>
+    <pre id="result"></pre>
+
+    <script>
+        document.getElementById('rdapForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const type = document.getElementById('type').value;
+            const value = document.getElementById('value').value;
+
+            let url = '';
+
+            if (type === 'asnmap') {
+                url = `/cgi-bin/asnmap?asn=${encodeURIComponent(value)}`;
+            } else {
+                url = `/cgi-bin/radp?${type}=${encodeURIComponent(value)}`;
+            }
+
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = 'Loading...';
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resultElement.textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    resultElement.textContent = 'Error: ' + error.message;
+                });
+        });
+    </script>
+</body>
+</html>
