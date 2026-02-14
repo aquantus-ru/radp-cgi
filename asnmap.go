@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -77,6 +78,14 @@ func handleAsnMapCLI() {
 func queryASN(asn string) (*ASNMapResponse, error) {
 	// Normalize ASN
 	asn = strings.ToUpper(strings.TrimSpace(asn))
+
+	// Validate format: must be AS<digits> or just <digits>
+	// Using regex to check
+	validASN := regexp.MustCompile(`^(AS)?\d+$`)
+	if !validASN.MatchString(asn) {
+		return nil, fmt.Errorf("invalid ASN format: expected AS<number> or <number>")
+	}
+
 	if !strings.HasPrefix(asn, "AS") {
 		asn = "AS" + asn
 	}
