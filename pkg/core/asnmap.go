@@ -1,12 +1,9 @@
-package main
+package core
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"net"
-	"net/url"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -18,64 +15,7 @@ type ASNMapResponse struct {
 	Prefixes []string `json:"prefixes"`
 }
 
-func mainAsnMap() {
-	// Check if running as CGI
-	if os.Getenv("GATEWAY_INTERFACE") != "" || os.Getenv("QUERY_STRING") != "" {
-		handleAsnMapCGI()
-	} else {
-		handleAsnMapCLI()
-	}
-}
-
-func handleAsnMapCGI() {
-	query := os.Getenv("QUERY_STRING")
-	values, err := url.ParseQuery(query)
-	if err != nil {
-		respondJSON(nil, fmt.Errorf("failed to parse query string: %v", err))
-		return
-	}
-
-	asn := values.Get("asn")
-	if asn == "" {
-		respondJSON(nil, fmt.Errorf("missing parameter: expected asn"))
-		return
-	}
-
-	result, err := queryASN(asn)
-	respondJSON(result, err)
-}
-
-func handleAsnMapCLI() {
-	var asn string
-
-	// Simple argument parsing
-	for i := 1; i < len(os.Args); i++ {
-		arg := os.Args[i]
-		if arg == "-asn" && i+1 < len(os.Args) {
-			asn = os.Args[i+1]
-			i++
-		} else if !strings.HasPrefix(arg, "-") {
-			asn = arg
-		}
-	}
-
-	if asn == "" {
-		fmt.Println("Usage: asnmap <asn> | -asn <asn>")
-		os.Exit(1)
-	}
-
-	result, err := queryASN(asn)
-	if err != nil {
-		output, _ := json.MarshalIndent(ErrorResponse{Error: err.Error()}, "", "  ")
-		fmt.Println(string(output))
-		os.Exit(1)
-	}
-
-	output, _ := json.MarshalIndent(result, "", "  ")
-	fmt.Println(string(output))
-}
-
-func queryASN(asn string) (*ASNMapResponse, error) {
+func QueryASN(asn string) (*ASNMapResponse, error) {
 	// Normalize ASN
 	asn = strings.ToUpper(strings.TrimSpace(asn))
 
@@ -171,9 +111,9 @@ func fetchRadb(conn net.Conn, query string) ([]string, error) {
 		return prefixes, nil
 	}
 
-    if strings.HasPrefix(line, "F") {
-        return nil, fmt.Errorf("radb error: %s", line)
-    }
+	if strings.HasPrefix(line, "F") {
+		return nil, fmt.Errorf("radb error: %s", line)
+	}
 
 	return nil, fmt.Errorf("unexpected response from radb: %s", line)
 }
